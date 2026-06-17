@@ -1,28 +1,38 @@
 @extends('layouts.app')
 
+@section('pageTitle','Register')
+
 @section('content')
-<div class="max-w-md mx-auto bg-gray-800 p-6 rounded">
-  <h1 class="text-xl mb-4">Register</h1>
+<div class="min-h-screen flex items-center justify-center">
+  <div class="w-full max-w-md">
+    <div class="bg-gradient-to-br from-indigo-900 to-blue-900 p-8 rounded-lg card-shadow">
+      <h2 class="text-2xl font-bold mb-2">Buat Akun Baru</h2>
+      <p class="text-sm text-indigo-200 mb-6">Daftar untuk mengelola tim, roster, jadwal, dan inventaris gaming.</p>
 
-  @if($errors->any())<div class="mb-2 text-red-400">{{ $errors->first() }}</div>@endif
+      @if($errors->any())
+        <div class="mb-4 p-3 bg-red-700 text-white rounded">
+          <ul class="list-disc list-inside">
+            @foreach($errors->all() as $e)
+              <li>{{ $e }}</li>
+            @endforeach
+          </ul>
+        </div>
+      @endif
 
-  <form method="POST" action="/register">
-    @csrf
-    <div class="mb-2">
-      <label class="block text-sm">Name</label>
-      <input name="name" value="{{ old('name') }}" class="w-full p-2 rounded bg-gray-700" />
+      <form method="POST" action="/register">
+        @csrf
+        <div class="space-y-3">
+          <input name="name" placeholder="Nama Lengkap" value="{{ old('name') }}" class="w-full px-3 py-2 rounded bg-indigo-800 placeholder-indigo-300" />
+          <input name="email" placeholder="Email" value="{{ old('email') }}" class="w-full px-3 py-2 rounded bg-indigo-800 placeholder-indigo-300" />
+          <input name="password" type="password" placeholder="Password" class="w-full px-3 py-2 rounded bg-indigo-800 placeholder-indigo-300" />
+          <input name="password_confirmation" type="password" placeholder="Konfirmasi Password" class="w-full px-3 py-2 rounded bg-indigo-800 placeholder-indigo-300" />
+        </div>
+        <div class="mt-4 flex items-center justify-between">
+          <button class="px-4 py-2 bg-green-600 rounded text-white">Register</button>
+          <a href="/login" class="text-sm text-indigo-300">Sudah punya akun? Login</a>
+        </div>
+      </form>
     </div>
-    <div class="mb-2">
-      <label class="block text-sm">Email</label>
-      <input name="email" value="{{ old('email') }}" class="w-full p-2 rounded bg-gray-700" />
-    </div>
-    <div class="mb-4">
-      <label class="block text-sm">Password</label>
-      <input type="password" name="password" class="w-full p-2 rounded bg-gray-700" />
-    </div>
-    <div class="flex justify-end">
-      <button class="bg-blue-600 px-4 py-2 rounded">Register</button>
-    </div>
-  </form>
+  </div>
 </div>
 @endsection

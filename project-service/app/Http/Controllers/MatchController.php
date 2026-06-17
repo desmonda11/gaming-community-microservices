@@ -15,9 +15,9 @@ class MatchController extends Controller
 
     public function store(Request $request)
     {
-        $role = $request->get('auth_role');
+        $role = $request->auth_role ?? $request->get('auth_role');
         if ($role !== 'admin') {
-            return response()->json(['error' => 'Forbidden'], 403);
+            return response()->json(['error' => 'Forbidden', 'message' => 'Access denied'], 403);
         }
 
         $data = $request->validate([
@@ -35,9 +35,9 @@ class MatchController extends Controller
 
     public function update(Request $request, $id)
     {
-        $role = $request->get('auth_role');
+        $role = $request->auth_role ?? $request->get('auth_role');
         if ($role !== 'admin') {
-            return response()->json(['error' => 'Forbidden'], 403);
+            return response()->json(['error' => 'Forbidden', 'message' => 'Access denied'], 403);
         }
 
         $match = MatchModel::findOrFail($id);
@@ -56,9 +56,9 @@ class MatchController extends Controller
 
     public function destroy(Request $request, $id)
     {
-        $role = $request->get('auth_role');
+        $role = $request->auth_role ?? $request->get('auth_role');
         if ($role !== 'admin') {
-            return response()->json(['error' => 'Forbidden'], 403);
+            return response()->json(['error' => 'Forbidden', 'message' => 'Access denied'], 403);
         }
 
         $match = MatchModel::findOrFail($id);

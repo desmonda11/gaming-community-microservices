@@ -15,11 +15,13 @@ class StatisticController extends Controller
 
     public function store(Request $request)
     {
-        $role = $request->get('auth_role');
-        if ($role !== 'admin') {
-            return response()->json(['error' => 'Forbidden'], 403);
-        }
+        $role = $request->auth_role ?? $request->get('auth_role');
+        $authUserId = $request->auth_user_id ?? $request->get('auth_user_id');
 
+        // Only admin may create statistics
+        if ($role !== 'admin') {
+            return response()->json(['error' => 'Forbidden', 'message' => 'Only admin can manage KDA statistics'], 403);
+        }
         $data = $request->validate([
             'player_id' => 'required|integer|exists:players,id',
             'matches_played' => 'nullable|integer',
@@ -31,24 +33,28 @@ class StatisticController extends Controller
             'kda' => 'nullable|numeric',
         ]);
 
+        // user may create statistic only for players in teams they own
+        if ($role !== 'admin') {
+            $player = \App\Models\Player::with('team')->find($data['player_id']);
+            if (! $player || ! $player->team || ($player->team->owner_user_id ?? null) != $authUserId) {
+                return response()->json(['error' => 'Forbidden', 'message' => 'You can only manage your own team data'], 403);
+            }
+        }
+
         $stat = Statistic::create($data);
         return response()->json(['data' => $stat], 201);
     }
 
     public function update(Request $request, $id)
     {
-        $authRole = $request->get('auth_role');
-        $authUserId = $request->get('auth_user_id');
+        $authRole = $request->auth_role ?? $request->get('auth_role');
+
+        // Only admin may update statistics
+        if ($authRole !== 'admin') {
+            return response()->json(['error' => 'Forbidden', 'message' => 'Only admin can manage KDA statistics'], 403);
+        }
 
         $stat = Statistic::findOrFail($id);
-
-        // Admin can update any, user only if the stat belongs to their player record
-        if ($authRole !== 'admin') {
-            $player = $stat->player;
-            if (! $player || $player->user_id != $authUserId) {
-                return response()->json(['error' => 'Forbidden'], 403);
-            }
-        }
 
         $data = $request->validate([
             'matches_played' => 'nullable|integer',
@@ -66,9 +72,9 @@ class StatisticController extends Controller
 
     public function destroy(Request $request, $id)
     {
-        $role = $request->get('auth_role');
+        $role = $request->auth_role ?? $request->get('auth_role');
         if ($role !== 'admin') {
-            return response()->json(['error' => 'Forbidden'], 403);
+            return response()->json(['error' => 'Forbidden', 'message' => 'Only admin can manage KDA statistics'], 403);
         }
 
         $stat = Statistic::findOrFail($id);

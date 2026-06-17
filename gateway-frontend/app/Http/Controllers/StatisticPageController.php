@@ -12,7 +12,7 @@ class StatisticPageController extends Controller
         return Http::withToken(session('token'));
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $base = env('PROJECT_SERVICE_URL', 'http://127.0.0.1:8002');
         // fetch teams, players, matches, statistics
@@ -47,7 +47,7 @@ class StatisticPageController extends Controller
         foreach ($statistics as $s) {
             $pid = $s['player_id'];
             if (!isset($statsByPlayer[$pid])) {
-                $statsByPlayer[$pid] = ['matches_played'=>0,'win'=>0,'lose'=>0,'kill'=>0,'death'=>0,'assist'=>0];
+                $statsByPlayer[$pid] = ['matches_played'=>0,'win'=>0,'lose'=>0,'kill'=>0,'death'=>0,'assist'=>0,'stat_id'=>null];
             }
             $statsByPlayer[$pid]['matches_played'] += intval($s['matches_played'] ?? 0);
             $statsByPlayer[$pid]['win'] += intval($s['win'] ?? 0);
@@ -55,6 +55,8 @@ class StatisticPageController extends Controller
             $statsByPlayer[$pid]['kill'] += intval($s['kill'] ?? 0);
             $statsByPlayer[$pid]['death'] += intval($s['death'] ?? 0);
             $statsByPlayer[$pid]['assist'] += intval($s['assist'] ?? 0);
+            // keep a reference to a statistic record id for update/delete actions (last one wins)
+            $statsByPlayer[$pid]['stat_id'] = $s['id'] ?? $statsByPlayer[$pid]['stat_id'];
         }
 
         // extract unique games
@@ -110,23 +112,57 @@ class StatisticPageController extends Controller
             $teamsData[] = ['team' => $team, 'total_matches' => $totalMatches, 'wins' => $wins, 'losses' => $losses, 'win_rate' => $winRate, 'players' => $playerStats];
         }
 
+        // determine session user id early (used for dropdown filtering)
+        $sessUser = session('user');
+        $sessUserId = session('user_id') ?? null;
+        if (!$sessUserId) {
+            if (is_array($sessUser) && isset($sessUser['id'])) $sessUserId = $sessUser['id'];
+            if (is_object($sessUser) && isset($sessUser->id)) $sessUserId = $sessUser->id;
+        }
+
         // prepare dropdown labels: "Nickname - Team - Game"
         $playerDropdown = [];
+        $role = session('role');
         foreach ($players as $p) {
             $t = $teamsMap[$p['team_id']] ?? null;
             // if a game filter is active, skip players not in that game
             if ($selectedGame && $selectedGame !== 'all' && $t && ($t['game'] ?? '') !== $selectedGame) continue;
+            // if user, only include players from teams they own
+            if ($role !== 'admin') {
+                // if team lacks owner info, skip (server should provide owner_user_id)
+                if (! $t || !isset($t['owner_user_id']) || $t['owner_user_id'] != ($sessUserId ?? null)) continue;
+            }
             $label = $p['nickname'] . ($t ? ' - ' . ($t['name'] ?? '') . ' - ' . ($t['game'] ?? '') : '');
             $playerDropdown[] = ['id' => $p['id'], 'label' => $label];
         }
 
-        return view('statistics.index', ['teamsData' => $teamsData, 'role' => session('role'), 'user_id' => session('user')['id'] ?? null, 'playerDropdown' => $playerDropdown, 'games' => $games, 'selectedGame' => $selectedGame ?? 'all']);
+        $sessUser = session('user');
+        $sessUserId = session('user_id') ?? null;
+        if (!$sessUserId) {
+            if (is_array($sessUser) && isset($sessUser['id'])) $sessUserId = $sessUser['id'];
+            if (is_object($sessUser) && isset($sessUser->id)) $sessUserId = $sessUser->id;
+        }
+
+        // support optional editing via ?edit={stat_id}
+        $editing = false;
+        $editingStat = null;
+        $editId = $request->query('edit');
+        if ($editId) {
+            $resp = $this->client()->get($base . "/api/statistics/{$editId}");
+            if ($resp->ok()) {
+                $editing = true;
+                $editingStat = $resp->json('data');
+            }
+        }
+
+        return view('statistics.index', ['teamsData' => $teamsData, 'role' => session('role'), 'user_id' => $sessUserId, 'playerDropdown' => $playerDropdown, 'games' => $games, 'selectedGame' => $selectedGame ?? 'all', 'editing' => $editing, 'editingStat' => $editingStat]);
     }
 
     public function store(Request $request)
     {
+        // only admin may create statistics from frontend
         if (session('role') !== 'admin') {
-            return back()->withErrors(['error' => 'Forbidden']);
+            return back()->withErrors(['error' => 'Only admin can manage KDA statistics']);
         }
 
         $data = $request->validate(['player_id'=>'required|integer','matches_played'=>'nullable|integer','win'=>'nullable|integer','lose'=>'nullable|integer','kill'=>'nullable|integer','death'=>'nullable|integer','assist'=>'nullable|integer','kda'=>'nullable|numeric']);
@@ -137,10 +173,10 @@ class StatisticPageController extends Controller
 
     public function update(Request $request, $id)
     {
-        $role = session('role');
-        $userId = session('user')['id'] ?? null;
+        if (session('role') !== 'admin') {
+            return back()->withErrors(['error' => 'Only admin can manage KDA statistics']);
+        }
 
-        // If not admin, ensure user owns the player via project-service enforcement
         $data = $request->validate(['matches_played'=>'nullable|integer','win'=>'nullable|integer','lose'=>'nullable|integer','kill'=>'nullable|integer','death'=>'nullable|integer','assist'=>'nullable|integer','kda'=>'nullable|numeric']);
         $url = env('PROJECT_SERVICE_URL') . "/api/statistics/{$id}";
         $this->client()->put($url, $data);

@@ -29,7 +29,24 @@ class AuthController extends Controller
 
         $json = $resp->json();
 
-        session(['token' => $json['token'], 'user' => $json['user'], 'role' => $json['role'] ?? ($json['user']['role'] ?? null)]);
+        // normalize user and user_id into session
+        $user = $json['user'] ?? null;
+        $role = $json['role'] ?? ($user['role'] ?? null);
+        $userId = $user['id'] ?? $json['user_id'] ?? null;
+
+        // try to extract from JWT payload if still null
+        if (!$userId && !empty($json['token'])) {
+            $parts = explode('.', $json['token']);
+            if (count($parts) >= 2) {
+                $payload = $parts[1];
+                $decoded = json_decode(base64_decode(strtr($payload, '-_', '+/')), true);
+                if (is_array($decoded)) {
+                    $userId = $decoded['user_id'] ?? $decoded['id'] ?? $decoded['sub'] ?? $userId;
+                }
+            }
+        }
+
+        session(['token' => $json['token'], 'user' => $user, 'role' => $role, 'user_id' => $userId]);
 
         return redirect('/dashboard');
     }
@@ -60,7 +77,7 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        $request->session()->forget(['token', 'user', 'role']);
+        $request->session()->forget(['token', 'user', 'role', 'user_id']);
         return redirect('/login');
     }
 }

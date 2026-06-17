@@ -17,15 +17,19 @@ class TeamPageController extends Controller
         $url = env('PROJECT_SERVICE_URL', 'http://127.0.0.1:8002') . '/api/teams';
         $resp = $this->client()->get($url);
         $teams = $resp->ok() ? $resp->json('data') : [];
-        return view('teams.index', ['teams' => $teams, 'role' => session('role')]);
+        $sessUser = session('user');
+        $sessUserId = session('user_id') ?? null;
+        if (!$sessUserId) {
+            if (is_array($sessUser) && isset($sessUser['id'])) $sessUserId = $sessUser['id'];
+            if (is_object($sessUser) && isset($sessUser->id)) $sessUserId = $sessUser->id;
+        }
+
+        return view('teams.index', ['teams' => $teams, 'role' => session('role'), 'user_id' => $sessUserId]);
     }
 
     public function store(Request $request)
     {
-        if (session('role') !== 'admin') {
-            return back()->withErrors(['error' => 'Forbidden']);
-        }
-
+        // both admin and users may create teams; server will set owner for users
         $data = $request->validate(['name' => 'required', 'game' => 'required', 'description' => 'nullable']);
         $url = env('PROJECT_SERVICE_URL') . '/api/teams';
         $this->client()->post($url, $data);
@@ -34,10 +38,7 @@ class TeamPageController extends Controller
 
     public function update(Request $request, $id)
     {
-        if (session('role') !== 'admin') {
-            return back()->withErrors(['error' => 'Forbidden']);
-        }
-
+        // allow frontend to submit update; project-service enforces ownership for users
         $data = $request->validate(['name' => 'sometimes', 'game' => 'sometimes', 'description' => 'nullable']);
         $url = env('PROJECT_SERVICE_URL') . "/api/teams/{$id}";
         $this->client()->put($url, $data);

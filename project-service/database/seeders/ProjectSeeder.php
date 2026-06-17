@@ -9,7 +9,6 @@ use App\Models\Team;
 use App\Models\Player;
 use App\Models\MatchModel;
 use App\Models\Statistic;
-use App\Models\Inventory;
 
 class ProjectSeeder extends Seeder
 {
@@ -32,8 +31,6 @@ class ProjectSeeder extends Seeder
         Statistic::create(['player_id'=>$p1->id,'matches_played'=>10,'win'=>6,'lose'=>4,'kill'=>120,'death'=>80,'assist'=>30,'kda'=>2.25]);
         Statistic::create(['player_id'=>$p2->id,'matches_played'=>8,'win'=>5,'lose'=>3,'kill'=>60,'death'=>40,'assist'=>50,'kda'=>2.75]);
 
-        // Inventories
-        Inventory::create(['team_id'=>$t1->id,'item_name'=>'Gaming PC','category'=>'Hardware','quantity'=>5,'condition'=>'Good','notes'=>'Used for scrims']);
-        Inventory::create(['team_id'=>$t2->id,'item_name'=>'Headset','category'=>'Accessory','quantity'=>5,'condition'=>'New','notes'=>'Sponsor']);
+        // Inventories feature removed
     }
 }

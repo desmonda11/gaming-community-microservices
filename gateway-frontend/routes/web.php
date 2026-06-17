@@ -7,7 +7,6 @@ use App\Http\Controllers\TeamPageController;
 use App\Http\Controllers\PlayerPageController;
 use App\Http\Controllers\MatchPageController;
 use App\Http\Controllers\StatisticPageController;
-use App\Http\Controllers\InventoryPageController;
 
 // Public auth
 Route::get('/login', [AuthController::class, 'showLogin']);
@@ -42,10 +41,7 @@ Route::middleware('gateway.auth')->group(function () {
     Route::post('/statistics/{id}/update', [StatisticPageController::class, 'update']);
     Route::post('/statistics/{id}/delete', [StatisticPageController::class, 'delete']);
 
-    Route::get('/inventories', [InventoryPageController::class, 'index']);
-    Route::post('/inventories', [InventoryPageController::class, 'store']);
-    Route::post('/inventories/{id}/update', [InventoryPageController::class, 'update']);
-    Route::post('/inventories/{id}/delete', [InventoryPageController::class, 'delete']);
+    // (Inventories and Inventory Requests pages removed)
 });
 
 Route::get('/', function () {

@@ -43,7 +43,14 @@ class MatchPageController extends Controller
             if ($eresp->ok()) { $editing = $eresp->json('data'); }
         }
 
-        return view('matches.index', ['matches' => $matches, 'role' => session('role'), 'teams' => $teams, 'teamsMap' => $teamsMap, 'editing' => $editing]);
+        $sessUser = session('user');
+        $sessUserId = session('user_id') ?? null;
+        if (!$sessUserId) {
+            if (is_array($sessUser) && isset($sessUser['id'])) $sessUserId = $sessUser['id'];
+            if (is_object($sessUser) && isset($sessUser->id)) $sessUserId = $sessUser->id;
+        }
+
+        return view('matches.index', ['matches' => $matches, 'role' => session('role'), 'teams' => $teams, 'teamsMap' => $teamsMap, 'editing' => $editing, 'user_id' => $sessUserId]);
     }
 
     public function store(Request $request)

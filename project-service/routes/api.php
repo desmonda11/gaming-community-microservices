@@ -5,7 +5,7 @@ use App\Http\Controllers\TeamController;
 use App\Http\Controllers\PlayerController;
 use App\Http\Controllers\MatchController;
 use App\Http\Controllers\StatisticController;
-use App\Http\Controllers\InventoryController;
+// InventoryController removed
 
 Route::middleware('jwt.auth')->group(function () {
     // Teams
@@ -33,9 +33,5 @@ Route::middleware('jwt.auth')->group(function () {
     Route::put('/statistics/{id}', [StatisticController::class, 'update']);
     Route::delete('/statistics/{id}', [StatisticController::class, 'destroy']);
 
-    // Inventories
-    Route::get('/inventories', [InventoryController::class, 'index']);
-    Route::post('/inventories', [InventoryController::class, 'store']);
-    Route::put('/inventories/{id}', [InventoryController::class, 'update']);
-    Route::delete('/inventories/{id}', [InventoryController::class, 'destroy']);
+    // (Inventories and Inventory Requests feature removed)
 });
