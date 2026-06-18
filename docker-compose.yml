@@ -1,79 +1,47 @@
-version: '3.8'
-
 services:
-  # Gateway / Frontend
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    env_file:
+      - ./auth-service/.env
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./auth-service/database:/var/www/database
+      - ./auth-service/storage:/var/www/storage
+    networks:
+      - microservices-network
+
+  project-service:
+    build: ./project-service
+    container_name: project-service
+    env_file:
+      - ./project-service/.env
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./project-service/database:/var/www/database
+      - ./project-service/storage:/var/www/storage
+    depends_on:
+      - auth-service
+    networks:
+      - microservices-network
+
   gateway-frontend:
     build: ./gateway-frontend
     container_name: gateway-frontend
-    ports:
-      - "8080:8000"
     env_file:
       - ./gateway-frontend/.env
+    ports:
+      - "8080:8000"
+    volumes:
+      - ./gateway-frontend/database:/var/www/database
+      - ./gateway-frontend/storage:/var/www/storage
     depends_on:
       - auth-service
       - project-service
     networks:
       - microservices-network
-
-  # Auth Service
-  auth-service:
-    build: ./auth-service
-    container_name: auth-service
-    ports:
-      - "8001:8000"
-    env_file:
-      - ./auth-service/.env
-    depends_on:
-      - user-db
-    networks:
-      - microservices-network
-
-  # Project Service
-  project-service:
-    build: ./project-service
-    container_name: project-service
-    ports:
-      - "8002:8000"
-    env_file:
-      - ./project-service/.env
-    depends_on:
-      - project-db
-    networks:
-      - microservices-network
-
-  # Auth Database
-  user-db:
-    image: mysql:8.0
-    container_name: user-db
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: user_db
-      MYSQL_USER: db_user
-      MYSQL_PASSWORD: strong_password_here
-    volumes:
-      - user-db-data:/var/lib/mysql
-    networks:
-      - microservices-network
-
-  # Project Database
-  project-db:
-    image: mysql:8.0
-    container_name: project-db
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: project_db
-      MYSQL_USER: db_user
-      MYSQL_PASSWORD: strong_password_here
-    volumes:
-      - project-db-data:/var/lib/mysql
-    networks:
-      - microservices-network
-
-volumes:
-  user-db-data:
-  project-db-data:
 
 networks:
   microservices-network:
